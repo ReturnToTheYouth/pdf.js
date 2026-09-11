@@ -1329,8 +1329,8 @@ class Annotation {
     transform[4] -= rect[0];
     transform[5] -= rect[1];
     const p = coords.slice();
-    Util.applyTransform(p, transform);
     Util.applyTransform(p, matrix);
+    Util.applyTransform(p, transform);
     return p;
   }
 
@@ -3889,6 +3889,34 @@ class FreeTextAnnotation extends MarkupAnnotation {
     this._hasAppearance = !!this.appearance;
 
     if (this._hasAppearance) {
+      /** Recover the editor direction when rotation is stored only in the AP. */
+      const mk = params.dict.get("MK");
+      if (
+        !params.dict.has("Rotate") &&
+        !(mk instanceof Dict && mk.has("R"))
+      ) {
+        const matrix = this.appearance.dict.getArray("Matrix");
+        if (
+          Array.isArray(matrix) &&
+          matrix.length === 6 &&
+          matrix.every(Number.isFinite)
+        ) {
+          const [a, b, c, d] = matrix;
+          const xScale = Math.hypot(a, b);
+          const yScale = Math.hypot(c, d);
+          const angle = (Math.atan2(b, a) * 180) / Math.PI;
+          const quarterTurn = Math.round(angle / 90) * 90;
+          if (
+            xScale > 0 &&
+            yScale > 0 &&
+            a * d - b * c > 0 &&
+            Math.abs(a * c + b * d) <= 1e-6 * xScale * yScale &&
+            Math.abs(angle - quarterTurn) < 1e-4
+          ) {
+            this.rotation = this.data.rotation = (quarterTurn + 360) % 360;
+          }
+        }
+      }
       const { fontColor, fontSize } = parseAppearanceStream(
         this.appearance,
         evaluatorOptions,

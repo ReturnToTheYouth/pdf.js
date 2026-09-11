@@ -1567,7 +1567,7 @@ class FreeTextEditor extends AnnotationEditor {
               (position[0] - pageX - this.height * pageHeight) / pageWidth;
             posY =
               baseY +
-              (position[1] - pageY - this.width * pageWidth) / pageHeight;
+              (this.width * pageWidth - position[1] + pageY) / pageHeight;
             [tx, ty] = [-ty, tx];
             break;
         }
